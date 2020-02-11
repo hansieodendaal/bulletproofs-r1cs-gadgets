@@ -8,6 +8,7 @@ use curve25519_dalek::scalar::Scalar;
 use bulletproofs::{BulletproofGens, PedersenGens};
 use curve25519_dalek::ristretto::CompressedRistretto;
 use bulletproofs::r1cs::LinearCombination;
+use std::cmp;
 
 use crate::r1cs_utils::{AllocatedQuantity, positive_no_gadget, constrain_lc_with_scalar};
 
@@ -99,6 +100,11 @@ impl PositiveNoGadget {
     Ok(())
 }*/
 
+fn count_log_bits(number: u64) -> usize {
+    let logaritm_int = cmp::min((number as f64).log2() as usize + 1, 64 as usize);
+    return logaritm_int as usize
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,8 +116,8 @@ mod tests {
         use rand::Rng;
 
         let mut rng = OsRng::new().unwrap();
-        let min = 10;
-        let max = 100;
+        let min = 1e6 as u64; //10; std::u64::MAX/10;
+        let max = 2e6 as u64; //100; //std::u64::MAX;
 
         let v = rng.gen_range(min, max);
         println!("v is {}", &v);
@@ -122,8 +128,8 @@ mod tests {
         let pc_gens = PedersenGens::default();
         let bp_gens = BulletproofGens::new(128, 1);
 
-        // TODO: Use correct bit size of the field
-        let n = 32;
+        let n = count_log_bits(max);
+        println!("bit_size is {}", &n);
 
         let a = v - min;
         let b = max - v;
@@ -168,6 +174,7 @@ mod tests {
         };
 
         println!("Proving done");
+        dbg!(&proof, &commitments);
 
         // Verifier makes a `ConstraintSystem` instance representing a merge gadget
         let mut verifier_transcript = Transcript::new(b"BoundsTest");
